@@ -24,8 +24,8 @@ ENV ANSIBLE_SSH_PIPELINING True
 
 # Now Terraform
 
-ADD https://releases.hashicorp.com/terraform/1.0.3/terraform_1.0.3_linux_amd64.zip /tmp/
-RUN unzip -d /usr/local/bin/ /tmp/terraform_1.0.3_linux_amd64.zip && \
+ADD https://releases.hashicorp.com/terraform/1.0.8/terraform_1.0.8_linux_amd64.zip /tmp/
+RUN unzip -d /usr/local/bin/ /tmp/terraform_1.0.8_linux_amd64.zip && \
     chmod +x /usr/local/bin/terraform
 
 # Add the self-signed certificate root from my vSphere installation
