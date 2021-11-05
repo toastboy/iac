@@ -21,6 +21,7 @@ ENV ANSIBLE_HOST_KEY_CHECKING False
 ENV ANSIBLE_RETRY_FILES_ENABLED False
 ENV ANSIBLE_ROLES_PATH /ansible/playbooks/roles
 ENV ANSIBLE_SSH_PIPELINING True
+ENV ANSIBLE_STDOUT_CALLBACK debug
 
 # Now Terraform
 
@@ -38,15 +39,23 @@ RUN update-ca-certificates
 
 # Also packer
 
-RUN  apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release software-properties-common git xorriso && \
+RUN  apt-get update && DEBIAN_FRONTEND=noninteractive \
+             apt-get install -y \
+                 apt-transport-https \
+                 ca-certificates \
+                 curl \
+                 git \
+                 gnupg \
+                 lsb-release \
+                 software-properties-common \
+                 xorriso && \
      curl -fsSL https://apt.releases.hashicorp.com/gpg | APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key add - && \
      apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" && \
      apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y packer && apt-get clean all
 
-ADD VMware-ovftool-4.4.1-16812187-lin.x86_64.bundle .
-
-RUN chmod +x VMware-ovftool-4.4.1-16812187-lin.x86_64.bundle && \
-    ./VMware-ovftool-4.4.1-16812187-lin.x86_64.bundle --eulas-agreed
+ADD VMware-ovftool-4.4.1-16812187-lin.x86_64.bundle /tmp/
+RUN chmod +x /tmp/VMware-ovftool-4.4.1-16812187-lin.x86_64.bundle && \
+    /tmp/VMware-ovftool-4.4.1-16812187-lin.x86_64.bundle --eulas-agreed
 
 # Finally the tweaks in the jenkins user directory
 
