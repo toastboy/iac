@@ -3,18 +3,11 @@
 
 # Owes a debt to https://github.com/geektechdude/ansible_container/blob/master/Dockerfile
 
-FROM jenkins/agent:stretch
+FROM jenkins/agent
 
 USER root
 
-# First, install Ansible
-
-ADD ansible.list /etc/apt/sources.list.d/ansible.list
-RUN APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 93C4A3FD7BB9C367 && \
-    apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt install -y ansible && \
-    apt-get dist-upgrade -y && \
-    apt-get clean all
+# Set some Ansible defaults
 
 ENV ANSIBLE_GATHERING smart
 ENV ANSIBLE_HOST_KEY_CHECKING False
@@ -23,11 +16,25 @@ ENV ANSIBLE_ROLES_PATH /ansible/playbooks/roles
 ENV ANSIBLE_SSH_PIPELINING True
 ENV ANSIBLE_STDOUT_CALLBACK debug
 
-# Now Terraform
+# Install Ansible, Terraform and Packer in the recommended ways
 
-ADD https://releases.hashicorp.com/terraform/1.0.8/terraform_1.0.8_linux_amd64.zip /tmp/
-RUN unzip -d /usr/local/bin/ /tmp/terraform_1.0.8_linux_amd64.zip && \
-    chmod +x /usr/local/bin/terraform
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
+            apt-get install -y \
+                apt-transport-https \
+                ca-certificates \
+                curl \
+                git \
+                gnupg \
+                lsb-release \
+                software-properties-common \
+                xorriso
+ADD ansible.list /etc/apt/sources.list.d/ansible.list
+RUN APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 93C4A3FD7BB9C367 && \
+    curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - && \
+    apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" && \
+    apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt install -y ansible packer terraform && \
+    apt-get clean all
 
 # Add the self-signed certificate root from my vSphere installation
 
@@ -37,25 +44,17 @@ RUN unzip -d /usr/local/bin/ /tmp/terraform_1.0.8_linux_amd64.zip && \
 ADD vsphere.crt /usr/local/share/ca-certificates/vsphere.crt
 RUN update-ca-certificates
 
-# Also packer
-
-RUN  apt-get update && DEBIAN_FRONTEND=noninteractive \
-             apt-get install -y \
-                 apt-transport-https \
-                 ca-certificates \
-                 curl \
-                 git \
-                 gnupg \
-                 lsb-release \
-                 software-properties-common \
-                 xorriso && \
-     curl -fsSL https://apt.releases.hashicorp.com/gpg | APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key add - && \
-     apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" && \
-     apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y packer && apt-get clean all
+# Finally the OVF tool to create VMware VM images
 
 ADD VMware-ovftool-4.4.1-16812187-lin.x86_64.bundle /tmp/
 RUN chmod +x /tmp/VMware-ovftool-4.4.1-16812187-lin.x86_64.bundle && \
     /tmp/VMware-ovftool-4.4.1-16812187-lin.x86_64.bundle --eulas-agreed
+
+# Make sure everything is up to date
+
+RUN apt-get update && \
+    apt-get dist-upgrade -y && \
+    apt-get clean all
 
 # Finally the tweaks in the jenkins user directory
 
